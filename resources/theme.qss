@@ -1,0 +1,62 @@
+/* VS Code–like dark theme (cleaner, subtler accents) */
+QWidget {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    selection-background-color: #264f78;
+}
+
+QMenuBar, QMenu, QToolTip {
+    background: #252526;
+    border: 0;
+}
+
+QToolBar {
+    background: #252526;
+    border: 0;
+}
+
+QSplitter::handle {
+    background: #2a2a2a;
+}
+
+/* Tabs */
+QTabBar::tab {
+    background: #2c2c2c;
+    padding: 6px 12px;
+    border: 0;
+    color: #bbbbbb;
+    margin-right: 1px;
+}
+QTabBar::tab:hover { color: #ffffff; }
+QTabBar::tab:selected {
+    background: #1e1e1e;
+    color: #ffffff;
+    border-bottom: 2px solid #007acc;
+}
+QTabWidget::pane { border-top: 1px solid #2a2a2a; }
+
+/* Explorer */
+QTreeView {
+    background: #252526;
+    border: none;
+    alternate-background-color: #2a2a2a;
+}
+QTreeView::item { height: 22px; }
+QTreeView::item:selected { background: #094771; }
+
+/* Status bar */
+QStatusBar {
+    background: #2b2b2b;
+    color: #d4d4d4;
+    border-top: 1px solid #2a2a2a;
+}
+
+/* Editors */
+QPlainTextEdit, QTextEdit {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    selection-background-color: #264f78;
+    border: none;
+}
+
+
