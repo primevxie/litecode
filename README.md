@@ -57,15 +57,6 @@ python app.py
 - Highlighter colors in `widgets/highlighter.py`
 - Toggle features in the View/Edit menus
 
----
-
-## 🗺️ Roadmap
-
-- Command Palette (Ctrl+Shift+P)
-- Split editors, pin tabs
-- Git gutter decorations
-- Settings persistence (theme, font, indent, autosave)
-- More languages for syntax highlighting
 
 ---
 
@@ -78,5 +69,6 @@ Add a couple screenshots or GIFs here (dark theme, find panel, minimap).
 ## License
 
 MIT. See `LICENSE` (or the repo).
+
 
 
