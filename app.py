@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, QFile, QTextStream, QTimer
-from PySide6.QtGui import QAction, QIcon, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -25,6 +25,8 @@ from PySide6.QtWidgets import (
 
 from widgets.code_editor import CodeEditor
 from widgets.file_explorer import FileExplorer
+from widgets.find_panel import FindPanel, FindInFilesPanel
+from widgets.minimap import Minimap
 
 
 APP_NAME = "LiteCode"
@@ -53,16 +55,43 @@ class MainWindow(QMainWindow):
         self.explorer = FileExplorer()
         self.explorer.file_open_requested.connect(self.open_file_in_editor)
 
-        splitter = QSplitter()  # two-pane sandwich: explorer | editor tabs
-        splitter.addWidget(self.explorer)
-        splitter.addWidget(self.tabs)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
+        # find panels
+        self.find_panel = FindPanel()
+        self.find_panel.find_requested.connect(self._on_find_requested)
+        self.find_panel.replace_requested.connect(self._on_replace_requested)
+        
+        self.find_in_files_panel = FindInFilesPanel()
+        self.find_in_files_panel.file_result_clicked.connect(self._on_file_result_clicked)
+
+        # main splitter: explorer | editor+minimap
+        main_splitter = QSplitter()
+        main_splitter.addWidget(self.explorer)
+        
+        # editor area with minimap
+        editor_widget = QWidget()
+        editor_layout = QVBoxLayout(editor_widget)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.addWidget(self.find_panel)
+        
+        # editor + minimap splitter
+        editor_splitter = QSplitter()
+        editor_splitter.addWidget(self.tabs)
+        self.minimap = Minimap(None)  # attach when an editor is active
+        editor_splitter.addWidget(self.minimap)
+        editor_splitter.setStretchFactor(0, 1)
+        editor_splitter.setStretchFactor(1, 0)
+        
+        editor_layout.addWidget(editor_splitter)
+        editor_layout.addWidget(self.find_in_files_panel)
+        
+        main_splitter.addWidget(editor_widget)
+        main_splitter.setStretchFactor(0, 0)
+        main_splitter.setStretchFactor(1, 1)
 
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(splitter, 1)
+        layout.addWidget(main_splitter, 1)
         self.setCentralWidget(container)
 
         # segmented status bar: Path | Ln/Col | UTF-8 | LF | Spaces | AutoSave
@@ -132,6 +161,37 @@ class MainWindow(QMainWindow):
         self.autosave_action.setChecked(False)
         self.autosave_action.triggered.connect(self._toggle_autosave)
 
+        # View toggles
+        self.wrap_action = QAction("Word Wrap", self)
+        self.wrap_action.setCheckable(True)
+        self.wrap_action.setChecked(True)
+        self.wrap_action.triggered.connect(self.toggle_wrap)
+
+        self.zoom_in_action = QAction("Zoom In", self)
+        self.zoom_in_action.setShortcut(QKeySequence.ZoomIn)
+        self.zoom_in_action.triggered.connect(lambda: self._current_editor() and self._current_editor().zoomIn(1))
+
+        self.zoom_out_action = QAction("Zoom Out", self)
+        self.zoom_out_action.setShortcut(QKeySequence.ZoomOut)
+        self.zoom_out_action.triggered.connect(lambda: self._current_editor() and self._current_editor().zoomOut(1))
+
+        self.zoom_reset_action = QAction("Reset Zoom", self)
+        self.zoom_reset_action.setShortcut("Ctrl+0")
+        self.zoom_reset_action.triggered.connect(lambda: self._current_editor() and self._current_editor().zoom_reset())
+
+        # Find actions
+        self.find_action = QAction("Find", self)
+        self.find_action.setShortcut(QKeySequence.Find)
+        self.find_action.triggered.connect(self.show_find_panel)
+
+        self.find_in_files_action = QAction("Find in Files", self)
+        self.find_in_files_action.setShortcut("Ctrl+Shift+F")
+        self.find_in_files_action.triggered.connect(self.show_find_in_files)
+
+        self.toggle_minimap_action = QAction("Toggle Minimap", self)
+        self.toggle_minimap_action.setShortcut("Ctrl+M")
+        self.toggle_minimap_action.triggered.connect(self.toggle_minimap)
+
     def _create_menus_and_toolbar(self) -> None:
         """stick actions into menus and a smol toolbar."""
         menu_file = self.menuBar().addMenu("File")
@@ -161,6 +221,18 @@ class MainWindow(QMainWindow):
         menu_nav.addAction(self.next_tab_action)
         menu_nav.addAction(self.prev_tab_action)
 
+        menu_view = self.menuBar().addMenu("View")
+        menu_view.addAction(self.wrap_action)
+        menu_view.addAction(self.toggle_minimap_action)
+        menu_view.addSeparator()
+        menu_view.addAction(self.zoom_in_action)
+        menu_view.addAction(self.zoom_out_action)
+        menu_view.addAction(self.zoom_reset_action)
+
+        menu_edit = self.menuBar().addMenu("Edit")
+        menu_edit.addAction(self.find_action)
+        menu_edit.addAction(self.find_in_files_action)
+
         # Breadcrumbs bar (simple path label) above tabs
         # lightweight approach without custom widget complexity
         # shows current file relative path if available
@@ -184,6 +256,8 @@ class MainWindow(QMainWindow):
         editor.document().modificationChanged.connect(self._update_tab_modified_flag)
         self.tabs.addTab(editor, "Untitled")
         self.tabs.setCurrentWidget(editor)
+        editor.set_word_wrap(self.wrap_action.isChecked())
+        self.minimap.set_editor(editor)
         self.update_status()
 
     def open_file_dialog(self) -> None:
@@ -219,6 +293,8 @@ class MainWindow(QMainWindow):
         self.tabs.setTabToolTip(self.tabs.count() - 1, str(path))
         self.tabs.setCurrentWidget(editor)
         self._update_path_indicator()
+        editor.set_word_wrap(self.wrap_action.isChecked())
+        self.minimap.set_editor(editor)
         self.update_status()
 
     def _current_editor(self) -> CodeEditor | None:
@@ -285,6 +361,55 @@ class MainWindow(QMainWindow):
         if count == 0:
             return
         self.tabs.setCurrentIndex((self.tabs.currentIndex() - 1) % count)
+
+    def toggle_wrap(self) -> None:
+        ed = self._current_editor()
+        if ed:
+            ed.set_word_wrap(self.wrap_action.isChecked())
+    
+    # Find functionality
+    def show_find_panel(self) -> None:
+        """show the find/replace panel"""
+        self.find_panel.show_panel()
+    
+    def show_find_in_files(self) -> None:
+        """show find in files dialog"""
+        if not self._current_folder:
+            QMessageBox.information(self, "Find in Files", "Please open a folder first")
+            return
+        
+        from PySide6.QtWidgets import QInputDialog
+        text, ok = QInputDialog.getText(self, "Find in Files", "Search pattern:")
+        if ok and text:
+            self.find_in_files_panel.start_search(
+                self._current_folder, text, False, False, False
+            )
+    
+    def toggle_minimap(self) -> None:
+        """toggle minimap visibility"""
+        self.minimap.setVisible(not self.minimap.isVisible())
+    
+    def _on_find_requested(self, text: str, use_regex: bool, case_sensitive: bool, whole_word: bool) -> None:
+        """handle find request from panel"""
+        editor = self._current_editor()
+        if editor:
+            found = editor.find_text(text, use_regex, case_sensitive, whole_word)
+            if not found:
+                # wrap around to beginning
+                editor.moveCursor(QTextCursor.Start)
+                editor.find_text(text, use_regex, case_sensitive, whole_word)
+    
+    def _on_replace_requested(self, find_text: str, replace_text: str, use_regex: bool, case_sensitive: bool, whole_word: bool) -> None:
+        """handle replace request from panel"""
+        editor = self._current_editor()
+        if editor:
+            editor.replace_text(find_text, replace_text, use_regex, case_sensitive, whole_word)
+    
+    def _on_file_result_clicked(self, file_path: str, line_num: int) -> None:
+        """open file result from find in files"""
+        path = Path(file_path)
+        self.open_file_in_editor(path)
+        # TODO: jump to line number
 
     # Modified indicator handling
     def _update_tab_modified_flag(self) -> None:

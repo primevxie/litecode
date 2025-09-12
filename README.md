@@ -1,33 +1,82 @@
-litecode (smol vscode-ish, powered by pyside6)
+# LiteCode (v1.5)
 
-how 2 run
+A tiny, VS Code–styled editor built with PySide6. Fast start, clean UI, zero bloat.
 
-1) make venv n feed it deps:
-```
+[Repo: SkitDev/litecode](https://github.com/SkitDev/litecode)
+
+---
+
+## ✨ Highlights
+
+- Dark+ inspired theme, crisp typography
+- Sidebar explorer and tabbed editor with line numbers
+- Syntax highlighting (py / js / json)
+- Find panel (regex, case, whole word) and Find in Files
+- Minimap (toggle with Ctrl+M)
+- Word wrap + Zoom controls
+- Autosave, dirty dot, drag & drop open
+
+---
+
+## 🚀 Quick Start
+
+```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-2) boot it:
-```
 python app.py
 ```
 
-what u get
+---
 
-- dark cozy theme, minimal chrome
-- sidebar explorer (double‑click to open stuff)
-- tabbed editor w/ line numbers + lil glow on current line
-- open/save/save as + open folder
-- movable tabs, dirty dot when unsaved, optional autosave (File → Auto Save)
-- drag & drop files/folders right onto the window
-- status bar whispers ur cursor coords
-- shortcuts: Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S / Ctrl+W / Ctrl+Tab / Ctrl+Shift+Tab
+## 🧭 Shortcuts
 
-tweak me
+| Area | Keys |
+| --- | --- |
+| File | Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+W |
+| Tabs | Ctrl+Tab / Ctrl+Shift+Tab |
+| Find | Ctrl+F (panel), Ctrl+Shift+F (in files) |
+| Replace | Ctrl+H |
+| View | Ctrl+=, Ctrl+-, Ctrl+0 (Zoom), Ctrl+M (Minimap) |
 
-- colors live in `resources/theme.qss`
-- code is tiny n friendly, great base for adding syntax highlight, find/replace, etc
+---
+
+## 📂 Features (v1.5)
+
+- Editor: line highlight, line numbers, Dark+ colors
+- Search: inline find/replace, project-wide search results list
+- Minimap: overview with viewport highlight, click-to-jump
+- Status bar: path, Ln/Col, encoding, EOL, indent, autosave state
+- View: word wrap toggle, zoom in/out/reset
+
+---
+
+## 🛠️ Customize
+
+- Colors live in `resources/theme.qss`
+- Highlighter colors in `widgets/highlighter.py`
+- Toggle features in the View/Edit menus
+
+---
+
+## 🗺️ Roadmap
+
+- Command Palette (Ctrl+Shift+P)
+- Split editors, pin tabs
+- Git gutter decorations
+- Settings persistence (theme, font, indent, autosave)
+- More languages for syntax highlighting
+
+---
+
+## 📸 Screenshots
+
+Add a couple screenshots or GIFs here (dark theme, find panel, minimap).
+
+---
+
+## License
+
+MIT. See `LICENSE` (or the repo).
 
 

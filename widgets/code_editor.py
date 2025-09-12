@@ -6,7 +6,7 @@ no syntax fireworks yet, just comfy vibes and crisp glyphs.
 """
 
 from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QColor, QPainter, QTextFormat
+from PySide6.QtGui import QColor, QPainter, QTextFormat, QTextDocument
 from PySide6.QtWidgets import QPlainTextEdit, QWidget, QTextEdit
 from .highlighter import SimpleHighlighter, guess_language
 
@@ -50,6 +50,15 @@ class CodeEditor(QPlainTextEdit):
     def set_associated_path(self, path: str | None) -> None:
         lang = guess_language(path)
         self._highlighter = SimpleHighlighter(self.document(), lang)
+
+    # Convenience: word wrap + zoom controls
+    def set_word_wrap(self, enabled: bool) -> None:
+        self.setLineWrapMode(QPlainTextEdit.WidgetWidth if enabled else QPlainTextEdit.NoWrap)
+
+    def zoom_reset(self) -> None:
+        f = self.font()
+        f.setPointSize(11)
+        self.setFont(f)
 
     # Layout
     def line_number_area_width(self) -> int:
@@ -106,5 +115,53 @@ class CodeEditor(QPlainTextEdit):
             selection.cursor.clearSelection()
             extra_selections.append(selection)
         self.setExtraSelections(extra_selections)
+    
+    # Find functionality
+    def find_text(self, text: str, use_regex: bool = False, case_sensitive: bool = False, whole_word: bool = False) -> bool:
+        """find text in document, return True if found"""
+        if not text:
+            return False
+            
+        cursor = self.textCursor()
+        flags = QTextDocument.FindFlag(0)
+        if case_sensitive:
+            flags |= QTextDocument.FindCaseSensitively
+        if whole_word:
+            flags |= QTextDocument.FindWholeWords
+            
+        if use_regex:
+            # simple regex support
+            import re
+            pattern = re.compile(text, 0 if case_sensitive else re.IGNORECASE)
+            content = self.toPlainText()
+            match = pattern.search(content, cursor.position())
+            if match:
+                cursor.setPosition(match.start())
+                cursor.setPosition(match.end(), QTextCursor.KeepAnchor)
+                self.setTextCursor(cursor)
+                return True
+        else:
+            found = self.find(text, flags)
+            if found:
+                return True
+                
+        return False
+    
+    def replace_text(self, find_text: str, replace_text: str, use_regex: bool = False, case_sensitive: bool = False, whole_word: bool = False) -> bool:
+        """replace current selection or find next occurrence"""
+        cursor = self.textCursor()
+        
+        if cursor.hasSelection():
+            # replace current selection
+            cursor.insertText(replace_text)
+            return True
+        else:
+            # find and replace next occurrence
+            if self.find_text(find_text, use_regex, case_sensitive, whole_word):
+                cursor = self.textCursor()
+                cursor.insertText(replace_text)
+                return True
+                
+        return False
 
 
