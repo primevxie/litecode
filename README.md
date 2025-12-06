@@ -60,15 +60,10 @@ python app.py
 
 ---
 
-## 📸 Screenshots
-
-Add a couple screenshots or GIFs here (dark theme, find panel, minimap).
-
----
-
 ## License
 
 MIT. See `LICENSE` (or the repo).
+
 
 
 
